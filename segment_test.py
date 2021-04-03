@@ -8,7 +8,7 @@ if __name__ == "__main__":
     import numpy as np
 
     from src.types import Image, Mask, Rect
-    from src.mask import calculate_floodfill_mask
+    from src.mask import calculate_floodfill_mask, calculate_explicit_mask
     from src.cursor import find_cursor_by_difference
     from src.segment import calculate_line_rects, calculate_word_rects
 
@@ -41,10 +41,16 @@ if __name__ == "__main__":
         """
 
         image = load_image(input_filename)
-        mask = calculate_floodfill_mask(
+        # mask = calculate_floodfill_mask(
+        #     image,
+        #     (image.data.shape[1]-10, image.data.shape[0]-10),
+        #     # Note that this is BGR, whereas in Talon it will be RGB. Who know's why
+        #     # OpenCV does this differenty.
+        #     selection_colors=["#e48434"]
+        # )
+        mask = calculate_explicit_mask(
             image,
-            (image.data.shape[1]-1, image.data.shape[0]-1),
-            # Note that this is BGR, whereas in Talon it will be RGB. Who know's why
+            ["#ffffff"],
             # OpenCV does this differenty.
             selection_colors=["#e48434"]
         )
@@ -80,7 +86,7 @@ if __name__ == "__main__":
         save_image(image_one, output_filename)
 
 
-    draw_word_rectangles("examples/with-widgets.png", "/tmp/output.png")
+    draw_word_rectangles("examples/selected-text.png", "/tmp/output.png")
     # find_cursor_position(
     #     "examples/with-cursor.png",
     #     "examples/without-cursor.png",

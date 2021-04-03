@@ -1,4 +1,4 @@
 -
-telector: user.textarea_labels_show()
-telector show: user.textarea_labels_show()
-telector hide: user.textarea_labels_hide()
+telector: user.telector_show()
+telector show: user.telector_show()
+telector hide: user.telector_hide()

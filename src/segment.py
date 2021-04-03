@@ -113,7 +113,7 @@ def calculate_word_rects(
         else:
             # Half the largest whitespace block seems to work OK as a threshold
             biggest = min(max(*whitespace_widths), line_height)
-            word_whitespace_threshold = biggest // 2
+            word_whitespace_threshold = max(biggest // 2, 4)
 
     # Now join together the blobs which are less than the whitespace threshold
     # into words

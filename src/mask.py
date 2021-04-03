@@ -3,7 +3,7 @@ Functions for converting an Image to a Mask. The Mask has False for
 background pixels and True for foreground pixels.
 """
 
-from typing import Tuple
+from typing import Tuple, List
 
 import cv2
 import numpy as np
@@ -58,9 +58,30 @@ def calculate_floodfill_mask(
     return Mask(trimmed_mask == 0)
 
 
+def calculate_explicit_mask(
+        image: Image,
+        background_colors: List[str],
+        selection_colors=None) -> Mask:
+    """
+    Calculates a mask using an explicit set of background colors.
+    For now just hope that the color of selected text is not a background
+    color. This is fixable, but would require a little bit of work.
+    """
+
+    maskable_colors = background_colors + (selection_colors or [])
+    img = image.data
+    height, width, _ = img.shape
+    mask_array = np.ones((height, width), np.uint8) == 1
+    for color_str in maskable_colors:
+        color = _decode_hex(color_str)
+        mask_array = mask_array & (img != color).any(axis=2)
+
+    return Mask(mask_array)
+
+
 def _decode_hex(hexstr):
     """
-    Turns a RGB hex string like #aabbff into a BGR array [255, 187, 170]
+    Turns a RGB hex string like #aabbff into a RGB array [170, 187, 255]
     """
 
     return [

@@ -1,10 +1,18 @@
-tag: user.textarea_labels_showing
+tag: user.telector_showing
 -
-select <user.textarea_labels_anchor>:
-  user.textarea_labels_select_text("{textarea_labels_anchor}", "{textarea_labels_anchor}")
+select <user.telector_anchor>:
+  user.telector_select("{telector_anchor}", "{telector_anchor}")
 
-select <user.textarea_labels_anchor> through <user.textarea_labels_anchor>:
-  user.textarea_labels_select_text("{textarea_labels_anchor_1}", "{textarea_labels_anchor_2}")
+select <user.telector_anchor> through <user.telector_anchor>:
+  user.telector_select("{telector_anchor_1}", "{telector_anchor_2}")
 
-click <user.textarea_labels_anchor>:
-  user.textarea_labels_click_anchor("{textarea_labels_anchor}")
+cursor <user.telector_anchor>:
+  user.telector_select("{telector_anchor}", "{telector_anchor}")
+  key(right)
+
+cursor before <user.telector_anchor>:
+  user.telector_select("{telector_anchor}", "{telector_anchor}")
+  key(left)
+
+click <user.telector_anchor>:
+  user.telector_click("{telector_anchor}")
