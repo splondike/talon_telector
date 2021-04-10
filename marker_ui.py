@@ -1,3 +1,7 @@
+"""
+The GUI code
+"""
+
 from typing import List, NamedTuple, Optional
 
 import re
@@ -102,7 +106,7 @@ class MarkerUi:
 
 class UnderlineMarkerUi:
     """
-    An interface allowing you to select anchors by line label and word position
+    An interface allowing you to select anchors by line label and word/item position
     """
 
     class Group(NamedTuple):
@@ -113,7 +117,6 @@ class UnderlineMarkerUi:
     def __init__(self, groups: List[Group]=[], screen_idx=0):
         """
         Args:
-
             groups: List of groups of item rectangles with a label for the whole group.
             screen_idx: The Talon screen index we're showing the markers on.
         """
@@ -156,7 +159,6 @@ class UnderlineMarkerUi:
                     return None
 
         return None
-
 
     def _draw(self, canvas):
         paint = canvas.paint

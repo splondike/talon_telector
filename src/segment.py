@@ -1,5 +1,5 @@
 """
-Functions for segmenting a Mask into lines, words and letters
+Functions for segmenting a Mask into lines and words.
 """
 
 from typing import List
@@ -17,7 +17,7 @@ def calculate_line_rects(mask: Mask) -> List[Rect]:
 
     # Find the first non-background pixel in each line
     start_columns = np.argmax(img_mask, axis=1)
-    # And something like the last non-background pixel (corrected in the loop)
+    # And the last non-background pixel (counting from the right side)
     end_columns_inverses = np.argmax(np.flip(img_mask, axis=1), axis=1)
 
     start_y = -1
@@ -105,6 +105,8 @@ def calculate_word_rects(
     # And add the final blob
     blobs.append((start_word_x, line_slice.shape[1]))
 
+    # If we havent' got an explicit word_whitespace_threshold then guess one based
+    # on the distribution of whitespace widths we saw.
     if word_whitespace_threshold is None:
         if len(whitespace_widths) < 2:
             # Just take a wild guess for the threshold for lines without many

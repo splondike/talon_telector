@@ -1,5 +1,5 @@
 """
-The Talon actions etc exported by this package
+The Talon actions etc. provided by this package.
 """
 
 import time
@@ -72,7 +72,7 @@ setting_marker_ui_offset = mod.setting(
     type=int,
     desc=(
         "For the marker UI offset the labels down vertically somewhat. "
-        "Can allow text to be read even when markers are showing."
+        "This can allow text to be read even when markers are showing."
     ),
     default=0
 )
@@ -81,14 +81,15 @@ setting_word_spacing = mod.setting(
     type=int,
     desc=(
         "Whitespeace larger than this many pixels will be considered a word break. "
-        "Set to -1 (default) to have this automatically determined."
+        "Set to -1 to have this be automatically determined."
     ),
     default=-1
 )
 setting_win_rect_workaround = mod.setting(
     "telector_enable_win_rect_workaround",
     type=int,
-    desc="Turns on workaround for Talon active window rect bug (requires xdotool)",
+    # See https://github.com/talonvoice/talon/issues/285
+    desc="Turns on workaround for Talon active window linux rect bug (requires xdotool)",
     default=0
 )
 setting_debug_mode = mod.setting(
@@ -112,7 +113,7 @@ def screencap_to_image(rect: TalonRect) -> Image:
     return Image(np.delete(np.array(img), 3, axis=2))
 
 
-def calculate_relative(modifier, start, end):
+def calculate_relative(modifier: str, start: int, end: int) -> int:
     """
     Helper method for settings. Lets you specify numbers relative to a
     range. For example:
@@ -134,9 +135,9 @@ def calculate_relative(modifier, start, end):
         return start + modifier_
 
 
-def find_active_window_rect():
+def find_active_window_rect() -> TalonRect:
     """
-    The Talon active window rect detector is buggy under i3. So allow getting it a
+    The Talon active window rect detector is buggy under LInux. So allow getting it a
     different way.
     """
 
@@ -168,7 +169,7 @@ def find_active_window_rect():
         return ui.active_window().rect
 
 
-def find_bounding_rect(config=None):
+def find_bounding_rect(config: str=None) -> TalonRect:
     """
     Finds a bounding box to search for text in either based on an
     explicit argument or on setting_bounding_box
@@ -180,7 +181,6 @@ def find_bounding_rect(config=None):
         bits = bounding_box_setting.split(":")
         mods = bits[1].split(" ") if len(bits) > 1 else ["0", "0", "-0", "-0"]
         base_rect = find_active_window_rect()
-        print(base_rect, mods)
         _calc_pos = calculate_relative
 
         x = _calc_pos(mods[0], base_rect.x, base_rect.x + base_rect.width)
@@ -195,11 +195,11 @@ def find_bounding_rect(config=None):
     return rect
 
 
-def find_mask(image, bounding_rect, config=None):
+def find_mask(image: Image, bounding_rect: TalonRect, config: str=None) -> 'src.types.Mask':
     """
-    Finds a foreground/background mask for use as input to the segmenter
-    in the given image (with the given bounding box). Can be given
-    explicit configuration, or pull it from setting_background_detector.
+    Finds a foreground/background mask for use as input to the segmentation
+    system. Can be given explicit configuration, or pull it from
+    setting_background_detector.
     """
 
     background_detector_setting = config if config is not None else setting_background_detector.get()
@@ -233,7 +233,7 @@ def find_mask(image, bounding_rect, config=None):
     return mask
 
 
-def find_grouped_rects(bounding_rect, mask_config=None):
+def find_grouped_rects(bounding_rect: TalonRect, mask_config: str=None):
     """
     Produces a list of dicts representing lines. Each line contains a list
     of word rectangles contained within it.
@@ -259,7 +259,11 @@ def find_grouped_rects(bounding_rect, mask_config=None):
     return result
 
 
-def anchor_generator():
+def anchor_generator() -> 'Iterable[str]':
+    """
+    Produces an iterator of labels to use for the user interface
+    """
+
     letters = "abcdefghijklmnopqrstuvwxyz"
     for letter in letters:
         yield letter

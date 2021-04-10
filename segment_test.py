@@ -4,6 +4,7 @@ by Talon
 """
 
 if __name__ == "__main__":
+    # The above stops any of thise from getting processed in the Talon environment
     import cv2
     import numpy as np
 
@@ -41,19 +42,19 @@ if __name__ == "__main__":
         """
 
         image = load_image(input_filename)
-        # mask = calculate_floodfill_mask(
-        #     image,
-        #     (image.data.shape[1]-10, image.data.shape[0]-10),
-        #     # Note that this is BGR, whereas in Talon it will be RGB. Who know's why
-        #     # OpenCV does this differenty.
-        #     selection_colors=["#e48434"]
-        # )
-        mask = calculate_explicit_mask(
+        mask = calculate_floodfill_mask(
             image,
-            ["#ffffff"],
+            (image.data.shape[1]-10, image.data.shape[0]-10),
+            # Note that this is BGR, whereas in Talon it will be RGB. Who know's why
             # OpenCV does this differenty.
             selection_colors=["#e48434"]
         )
+        # mask = calculate_explicit_mask(
+        #     image,
+        #     ["#ffffff"],
+        #     # OpenCV does this differenty.
+        #     selection_colors=["#e48434"]
+        # )
         line_rects = calculate_line_rects(mask)
         word_rects = []
         for line_rect in line_rects:
@@ -87,8 +88,3 @@ if __name__ == "__main__":
 
 
     draw_word_rectangles("examples/selected-text.png", "/tmp/output.png")
-    # find_cursor_position(
-    #     "examples/with-cursor.png",
-    #     "examples/without-cursor.png",
-    #     "/tmp/output.png"
-    # )

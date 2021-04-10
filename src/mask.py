@@ -26,18 +26,16 @@ def calculate_floodfill_mask(
 
     height, width, _ = img.shape
     mask = np.zeros((height+2, width+2), np.uint8)
-    # N.b. this destroys img, by floodfilling
     cv2.floodFill(img, mask, (start_x, start_y), 1)
 
     # Floodfill uses the extra pixels to make a border. Get rid of that
     trimmed_mask = mask[1:-1, 1:-1]
 
-    # Take a note of the coords found by flood fill for bounding box usage later
+    # Take a note of the coords filled in by flood fill for bounding box usage later
     filled_coords = np.asarray(np.where(trimmed_mask == 1)).T
 
     # Turn any extra selection colors into background and their contained
-    # contents into foreground. This is primarily expected to be used to handle
-    # selected text.
+    # contents into foreground.
     if selection_colors is not None:
         for color in selection_colors:
             # Assume we have at most one region of each color. Otherwise if

@@ -6,7 +6,8 @@ Types used by the scripts
 class Image:  # pylint:disable=too-few-public-methods
     """
     A full color image. Contains a numpy array with shape (height, width, 3).
-    3 are the RGB channels. This is also the standard OpenCV image format.
+    3 are the RGB channels. This is also the standard OpenCV image format except
+    it users BGR.
     """
 
     def __init__(self, data):

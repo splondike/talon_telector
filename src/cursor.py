@@ -1,5 +1,5 @@
 """
-Functions for finding the cursor in screenshots
+Functions for finding the cursor in screenshots. Not currently used by the interface.
 """
 
 from typing import Optional
