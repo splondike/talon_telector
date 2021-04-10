@@ -5,7 +5,17 @@ The Talon actions etc exported by this package
 import time
 
 import numpy as np
-from talon import actions, screen, ui, canvas, settings, ctrl, Context, Module
+from talon import (
+    actions,
+    screen,
+    ui,
+    canvas,
+    registry,
+    settings,
+    ctrl,
+    Context,
+    Module
+)
 from talon.types import Rect as TalonRect
 
 # Import our modules then reset the Python path so as not to pollute the namespace
@@ -20,10 +30,13 @@ from src.segment import calculate_line_rects, calculate_word_rects
 sys.path = orig_path
 
 import marker_ui
+import importlib
+importlib.reload(marker_ui)
 
 
 mod = Module()
 mod.tag("telector_showing", desc="The text selection helper labels are showing")
+mod.tag("telector_ui_underline", desc="Indicates you want to use the line labels and underlines UI")
 ctx = Context()
 ctx_active = Context()
 ctx_active.matches = r"""
@@ -53,6 +66,21 @@ setting_target_mode = mod.setting(
     type=str,
     desc="The type of target you want to find, one of lines or words",
     default="words"
+)
+setting_marker_ui_offset = mod.setting(
+    "telector_enable_marker_ui_offset",
+    type=int,
+    desc=(
+        "For the marker UI offset the labels down vertically somewhat. "
+        "Can allow text to be read even when markers are showing."
+    ),
+    default=0
+)
+setting_win_rect_workaround = mod.setting(
+    "telector_enable_win_rect_workaround",
+    type=int,
+    desc="Turns on workaround for Talon active window rect bug (requires xdotool)",
+    default=0
 )
 setting_debug_mode = mod.setting(
     "telector_debug_mode",
@@ -97,6 +125,40 @@ def calculate_relative(modifier, start, end):
         return start + modifier_
 
 
+def find_active_window_rect():
+    """
+    The Talon active window rect detector is buggy under i3. So allow getting it a
+    different way.
+    """
+
+    if setting_win_rect_workaround.get() == 1:
+        import subprocess
+        active_window_id = subprocess.run(
+            ["xdotool", "getactivewindow"],
+            capture_output=True,
+            check=True
+        ).stdout.strip()
+        active_window_geom = subprocess.run(
+            ["xdotool", "getwindowgeometry", "--shell", active_window_id],
+            capture_output=True,
+            check=True
+        ).stdout
+        val_map = {
+            key.decode("utf8"): int(val)
+            for line in active_window_geom.splitlines()
+            for key, val in (line.split(b"="),)
+        }
+
+        return TalonRect(
+            val_map["X"],
+            val_map["Y"],
+            val_map["WIDTH"],
+            val_map["HEIGHT"],
+        )
+    else:
+        return ui.active_window().rect
+
+
 def find_bounding_rect(config=None):
     """
     Finds a bounding box to search for text in either based on an
@@ -108,7 +170,8 @@ def find_bounding_rect(config=None):
     if bounding_box_setting.startswith("active_window"):
         bits = bounding_box_setting.split(":")
         mods = bits[1].split(" ") if len(bits) > 1 else ["0", "0", "-0", "-0"]
-        base_rect = ui.active_window().rect
+        base_rect = find_active_window_rect()
+        print(base_rect, mods)
         _calc_pos = calculate_relative
 
         x = _calc_pos(mods[0], base_rect.x, base_rect.x + base_rect.width)
@@ -116,8 +179,8 @@ def find_bounding_rect(config=None):
         rect = TalonRect(
             x,
             y,
-            _calc_pos(mods[2], 0, base_rect.width) - x,
-            _calc_pos(mods[3], 0, base_rect.height) - y,
+            _calc_pos(mods[2], 0, base_rect.width) - int(mods[0]),
+            _calc_pos(mods[3], 0, base_rect.height) - int(mods[1]),
         )
 
     return rect
@@ -161,29 +224,28 @@ def find_mask(image, bounding_rect, config=None):
     return mask
 
 
-def find_rects(bounding_rect, mask_config=None, target_mode=None):
+def find_grouped_rects(bounding_rect, mask_config=None):
     """
-    Produces a list of selectable rectangles
+    Produces a list of dicts representing lines. Each line contains a list
+    of word rectangles contained within it.
     """
 
     image = screencap_to_image(bounding_rect)
     mask = find_mask(image, bounding_rect, mask_config)
-    target_mode_ = \
-        setting_target_mode.get() if target_mode is None else target_mode
 
     line_rects = calculate_line_rects(mask)
-    if target_mode_ == "lines":
-        return line_rects
-    else:
-        word_rects = []
-        for line_rect in line_rects:
-            line_word_rects = calculate_word_rects(
-                mask,
-                line_rect
-            )
-            word_rects += line_word_rects
+    result = []
+    for line_rect in line_rects:
+        word_rects = calculate_word_rects(
+            mask,
+            line_rect
+        )
+        result.append({
+            "line_rect": line_rect,
+            "word_rects": word_rects
+        })
 
-        return word_rects
+    return result
 
 
 def anchor_generator():
@@ -198,7 +260,11 @@ def anchor_generator():
 
 
 @mod.action_class
-class GeneralActions:
+class TelectorActions:
+    """
+    Actions related to the Telector interface
+    """
+
     def telector_show(
             bounding_rect_config: str="",
             mask_config: str="",
@@ -217,30 +283,70 @@ class GeneralActions:
         mask_config_ = \
             None if mask_config == "" else mask_config
         target_mode_ = \
-            None if target_mode == "" else target_mode
+            setting_target_mode.get() if target_mode == "" else target_mode
         bounding_rect = find_bounding_rect(bounding_rect_config_)
-        target_rects = find_rects(bounding_rect, mask_config_, target_mode_)
 
-        labels_ui = marker_ui.MarkerUi(
-            [
-                marker_ui.MarkerUi.Marker(
-                    target_region=TalonRect(
-                        bounding_rect.x + rect.x1,
-                        bounding_rect.y + rect.y1,
-                        rect.x2 - rect.x1,
-                        rect.y2 - rect.y1
-                    ),
-                    label=label
-                )
-                for rect, label in zip(target_rects, anchor_generator())
+        target_groups = find_grouped_rects(bounding_rect, mask_config_)
+        if target_mode_ == "lines":
+            target_rects = [
+                group["line_rect"]
+                for group in target_groups
             ]
-        )
+        else:
+            target_rects = [
+                word_rect
+                for group in target_groups
+                for word_rect in group["word_rects"]
+            ]
+
+        use_underline_ui = 'user.telector_ui_underline' in registry.tags
+        if use_underline_ui:
+            labels_ui = marker_ui.UnderlineMarkerUi(
+                [
+                    marker_ui.UnderlineMarkerUi.Group(
+                        label=label,
+                        line_rect=TalonRect(
+                            bounding_rect.x + line_rect.x1,
+                            bounding_rect.y + line_rect.y1,
+                            line_rect.x2 - line_rect.x1,
+                            line_rect.y2 - line_rect.y1
+                        ),
+                        item_rects=[
+                            TalonRect(
+                                bounding_rect.x + rect.x1,
+                                bounding_rect.y + rect.y1,
+                                rect.x2 - rect.x1,
+                                rect.y2 - rect.y1
+                            )
+                            for rect in group["word_rects"]
+                        ]
+                    )
+                    for group, label in zip(target_groups, anchor_generator())
+                    for line_rect in (group["line_rect"],)
+                ]
+            )
+        else:
+            labels_ui = marker_ui.MarkerUi(
+                [
+                    marker_ui.MarkerUi.Marker(
+                        target_region=TalonRect(
+                            bounding_rect.x + rect.x1,
+                            bounding_rect.y + rect.y1,
+                            rect.x2 - rect.x1,
+                            rect.y2 - rect.y1
+                        ),
+                        label=label
+                    )
+                    for rect, label in zip(target_rects, anchor_generator())
+                ],
+                offset_downward=setting_marker_ui_offset.get() == 1
+            )
         labels_ui.show()
         ctx.tags = ["user.telector_showing"]
 
     def telector_hide():
         """
-        Hide any visible textarea labels
+        Hide any visible telector UI
         """
 
         global labels_ui
@@ -249,9 +355,6 @@ class GeneralActions:
             labels_ui = None
         ctx.tags = []
 
-
-@mod.action_class
-class LabelsActiveActions:
     def telector_select(anchor1: str, anchor2: str):
         """
         Selects the text indicated by the given anchors
@@ -259,13 +362,8 @@ class LabelsActiveActions:
 
         global labels_ui
 
-        rect1 = None
-        rect2 = None
-        for marker in labels_ui.markers:
-            if marker.label == anchor1:
-                rect1 = marker.target_region
-            if marker.label == anchor2:
-                rect2 = marker.target_region
+        rect1 = labels_ui.find_rect(anchor1)
+        rect2 = labels_ui.find_rect(anchor2)
 
         if rect1 is None or rect2 is None:
             # Couldn't find them, quit
@@ -294,11 +392,6 @@ class LabelsActiveActions:
             init_mouse_y
         )
 
-        if labels_ui is not None:
-            labels_ui.destroy()
-            labels_ui = None
-        ctx.tags = []
-
     def telector_click(anchor: str, button:int = 0):
         """
         Clicks the given anchor
@@ -306,10 +399,7 @@ class LabelsActiveActions:
 
         global labels_ui
 
-        rect = None
-        for marker in labels_ui.markers:
-            if marker.label == anchor:
-                rect = marker.target_region
+        rect = labels_ui.find_rect(anchor)
 
         if rect is None:
             # Couldn't find them, quit
@@ -330,50 +420,35 @@ class LabelsActiveActions:
             init_mouse_y
         )
 
-        if labels_ui is not None:
-            labels_ui.destroy()
-            labels_ui = None
-        ctx.tags = []
-
-
-# Some capture groups we need
-
-
-@mod.capture(rule="{self.letter}+")
-def telector_anchor(m) -> str:
-    """
-    An anchor (string of letters)
-    """
-    return "".join(m)
-
 
 # Debugging stuff, enable by the setting "user.selector_debug_mode = 1"
 
 debug_canvas = None
 debug_bounding_rect = None
-debug_word_rects = None
+debug_grouped_rects = None
 
 def _debug_draw(canvas):
-    global debug_bounding_rect, debug_word_rects
+    global debug_bounding_rect, debug_grouped_rects
 
     paint = canvas.paint
     paint.stroke_width = 1
     paint.style = paint.Style.STROKE
-    paint.color = 'green'
+    paint.color = 'blue'
     canvas.draw_rect(debug_bounding_rect)
     paint.color = 'red'
-    for rect in debug_word_rects:
-        # skia canvas positions are always relative to the screen
-        canvas.draw_rect(TalonRect(
-            debug_bounding_rect.x + rect.x1,
-            debug_bounding_rect.y + rect.y1,
-            rect.x2 - rect.x1,
-            rect.y2 - rect.y1
-        ))
+    for line in debug_grouped_rects:
+        for rect in line["word_rects"]:
+            # skia canvas positions are always relative to the screen
+            canvas.draw_rect(TalonRect(
+                debug_bounding_rect.x + rect.x1,
+                debug_bounding_rect.y + rect.y1,
+                rect.x2 - rect.x1,
+                rect.y2 - rect.y1
+            ))
 
 
 def _debug_helper(*args):
-    global debug_canvas, debug_bounding_rect, debug_word_rects
+    global debug_canvas, debug_bounding_rect, debug_grouped_rects
     if debug_canvas:
         # Destroy all debugging stuff on settings change, we'll rebuild it if
         # neccessary in _debug_recapture_rects
@@ -388,7 +463,7 @@ def _debug_helper(*args):
         return
 
     debug_bounding_rect = find_bounding_rect()
-    debug_word_rects = find_rects(debug_bounding_rect)
+    debug_grouped_rects = find_grouped_rects(debug_bounding_rect)
     debug_canvas = canvas.Canvas.from_rect(debug_bounding_rect)
 
     debug_canvas.register("draw", _debug_draw)
