@@ -76,6 +76,15 @@ setting_marker_ui_offset = mod.setting(
     ),
     default=0
 )
+setting_word_spacing = mod.setting(
+    "telector_word_spacing",
+    type=int,
+    desc=(
+        "Whitespeace larger than this many pixels will be considered a word break. "
+        "Set to -1 (default) to have this automatically determined."
+    ),
+    default=-1
+)
 setting_win_rect_workaround = mod.setting(
     "telector_enable_win_rect_workaround",
     type=int,
@@ -236,9 +245,11 @@ def find_grouped_rects(bounding_rect, mask_config=None):
     line_rects = calculate_line_rects(mask)
     result = []
     for line_rect in line_rects:
+        word_spacing = setting_word_spacing.get()
         word_rects = calculate_word_rects(
             mask,
-            line_rect
+            line_rect,
+            word_whitespace_threshold=None if word_spacing == -1 else word_spacing
         )
         result.append({
             "line_rect": line_rect,
