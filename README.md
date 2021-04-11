@@ -1,8 +1,12 @@
 Text selection helper for [Talon](https://talonvoice.com/), mainly intended to help with editing prose. Attempts to locate and label words on the screen so you can indicate which you want to select.
 
+# Installation
+
+The script relies on the [knausj](https://github.com/knausj85/knausj_talon/) repository. You can just clone this one and drop it in next to that.
+
 # Usage
 
-You start by editing text in your program or website using normal commands. At some point you want to change a word or reposition the cursor. The `telector` command shows a overlay on the screen that indicates each word in your text widget. You are then able to use the `select`, `click`, or `cursor [before]` commands to select word(s), click on one, or reposition the cursor. For example you might say `click air` to click the word indicated by the letter 'a', or `select air through cap` to select all the words between 'a' and 'c'.
+You start by editing text in your program or website using normal commands. At some point you want to change a word or reposition the cursor. The `telector` command shows a overlay on the screen that indicates each word in your text widget. You are then able to use the `select`, `click`, or `cursor [before]` commands to select word(s), click on one, or reposition the cursor. For example you might say `click air` to click the word indicated by the letter 'a', or `select air through cap` to select all the words between 'a' and 'c'. Each of these actions will hide the overlay, but you can also say `telector hide` to hide it explicitly.
 
 The default configuration requires you to hover the mouse cursor over the background of the textarea that you are editing. It fills in identically colored pixels from this point to work out the extent of your textarea.
 
