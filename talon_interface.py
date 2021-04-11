@@ -206,8 +206,9 @@ def find_mask(image: Image, bounding_rect: TalonRect, config: str=None) -> 'src.
 
     if background_detector_setting == "mouse_fill":
         mouse_pos = ctrl.mouse_pos()
-        mouse_norm_y = mouse_pos[1] - bounding_rect.y
-        mouse_norm_x = mouse_pos[0] - bounding_rect.x
+        # Ints are because OSX gets floats for both mouse pos and the bounding rect
+        mouse_norm_y = int(mouse_pos[1] - bounding_rect.y)
+        mouse_norm_x = int(mouse_pos[0] - bounding_rect.x)
         mask = calculate_floodfill_mask(
             image,
             (mouse_norm_x, mouse_norm_y)
