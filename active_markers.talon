@@ -1,6 +1,7 @@
 # Actions for the word labels type UI (default) when it's showing
 tag: user.telector_showing
-not tag: user.telector_ui_underline
+and not tag: user.telector_ui_underline
+not title: Talon Draft
 -
 select <user.letters>:
   user.telector_select("{letters}", "{letters}")

@@ -1,6 +1,7 @@
 # Actions for the line labels and underlines type UI when it's showing
 tag: user.telector_showing
-tag: user.telector_ui_underline
+and tag: user.telector_ui_underline
+not title: Talon Draft
 -
 select <user.letters> <number_small>:
   user.telector_select("{letters}{number_small}", "{letters}{number_small}")
