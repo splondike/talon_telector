@@ -1,3 +1,5 @@
+**Archived:** I don't use this repo myself anymore. I've archived it because I think Cursorless and the built in Talon draft editor are more useful.
+
 Text selection helper for [Talon](https://talonvoice.com/), mainly intended to help with editing prose. Attempts to locate and label words on the screen so you can indicate which you want to select.
 
 # Installation
